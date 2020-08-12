@@ -188,3 +188,82 @@ pipeline {
 - Inside each `stage`, there must be `steps`. The steps themselves are Jenkins commands.
 
 - `echo` will just print something on the console. It can be useful for displaying values as the pipeline makes progress.
+
+### Part4 / Section 2 - Running Multiple Steps
+
+- Pipelines are made up of multiple steps that allow you to build, test and deploy applications. Jenkins Pipeline allows you to compose multiple steps in an easy way that can help you model any sort of automation process.
+
+- Think of a step as a single command that does a single action. When a step succeeds it moves onto the next step. When a step fails to execute correctly the Pipeline will fail.
+
+- When all the steps in the Pipeline have successfully completed, the Pipeline is considered successfully executed.
+
+- Create a new pipeline.
+
+- Use this script while  cresating pipeline:
+
+<pre data-editor>
+pipeline {
+    agent { label 'master' }
+    stages {
+       stage('build') {
+          steps {
+             sh 'echo step1'
+             sh 'echo step2'
+             sh '''
+                echo 'Multiline'
+                echo 'Example'
+             '''
+             echo 'not using shell'
+          }
+       }
+    }
+}
+</pre>
+
+- Save and Apply. Then Build now.
+
+- You will see the multi step pipeline result.
+
+## Part 4 - Build Pipeline with a Python App
+
+- Create a bridge network in Docker using the following docker network create command:
+
+<pre data-editor="" data-theme="dawn" data-border-color="darkslategray" data-readonly="">
+$ docker network create jenkins
+470a40abd7f2e06b22886827f162b3f1db7ea2fd535b242326b82482fd42b205 
+</pre>
+
+- Create the following volumes to share the Docker client TLS certificates needed to connect to the Docker daemon and persist the Jenkins data using the following docker volume create commands:
+
+<pre data-editor="" data-theme="dawn" data-border-color="darkslategray" data-readonly="">
+$ docker volume create jenkins-docker-certs
+jenkins-docker-certs
+$ docker volume create jenkins-data
+jenkins-data
+</pre>
+
+- In order to execute Docker commands inside Jenkins nodes, download and run the **docker:dind** Docker image using the following docker container run command:
+
+<pre data-editor="" data-theme="dawn" data-border-color="darkslategray" data-readonly="">
+$ docker container run --name jenkins-docker --rm --detach \
+   --privileged --network jenkins --network-alias docker \
+   --env DOCKER_TLS_CERTDIR=/certs \
+   --volume jenkins-docker-certs:/certs/client \
+   --volume jenkins-data:/var/jenkins_home \
+   --volume "$HOME":/home docker:dind
+</pre>
+ 
+- Run the jenkinsci/blueocean image as a container in Docker using the following docker container run command (bearing in mind that this command automatically downloads the image if this hasn’t been done):
+
+<pre data-editor="" data-theme="dawn" data-border-color="darkslategray" data-readonly="">
+docker container run --name jenkins-tutorial --rm --detach \
+  --network jenkins --env DOCKER_HOST=tcp://docker:2376 \
+  --env DOCKER_CERT_PATH=/certs/client --env DOCKER_TLS_VERIFY=1 \
+  --volume jenkins-data:/var/jenkins_home \
+  --volume jenkins-docker-certs:/certs/client:ro \
+  --volume "$HOME":/home --publish 8080:8080 jenkinsci/blueocean
+</pre>
+
+* Maps the /var/jenkins_home directory in the container to the Docker volume with the name jenkins-data. If this volume does not exist, then this docker container run command will automatically create the volume for you.
+
+* Maps the $HOME directory on the host (i.e. your local) machine (usually the /Users/<your-username> directory) to the /home directory in the container.
